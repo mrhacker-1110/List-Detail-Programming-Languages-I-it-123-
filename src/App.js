@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Film, Star, Clock, Calendar, ArrowLeft, Home, Search, Heart, User, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, X } from 'lucide-react';
+import { Film, Star, Clock, Calendar, ArrowLeft, Home, Search, Heart, User, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, X, ShoppingCart, Package } from 'lucide-react';
 import './App.css';
+import BasketList from './pages/BasketList';
+import BasketDetail from './pages/BasketDetail';
+import CreateOrder from './pages/CreateOrder';
+import UpdateOrder from './pages/UpdateOrder';
 
 const moviesData = [
   {
@@ -79,18 +83,19 @@ const moviesData = [
 
 function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
-  const [currentPage, setCurrentPage] = useState('home'); // home, search, favorites, profile
+  const [currentPage, setCurrentPage] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
+  const [basket, setBasket] = useState([]);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [editingOrderIndex, setEditingOrderIndex] = useState(null);
 
-  // Функция поиска фильмов
   const filteredMovies = moviesData.filter(movie => 
     movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     movie.genre.toLowerCase().includes(searchQuery.toLowerCase()) ||
     movie.director.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Добавить/удалить из избранного
   const toggleFavorite = (movie) => {
     if (favorites.find(fav => fav.id === movie.id)) {
       setFavorites(favorites.filter(fav => fav.id !== movie.id));
@@ -103,14 +108,37 @@ function App() {
     return favorites.some(fav => fav.id === movieId);
   };
 
-  // Переход на страницу
   const navigateTo = (page) => {
     setCurrentPage(page);
-    setSelectedMovie(null);
-    setSearchQuery('');
+    if (page !== 'detail' && page !== 'create-order' && page !== 'update-order') {
+      setSelectedMovie(null);
+    }
+    if (page !== 'search') {
+      setSearchQuery('');
+    }
   };
 
-  // Header Component
+  // Корзина
+  const addToBasket = (item) => {
+    setBasket([...basket, item]);
+  };
+
+  const removeFromBasket = (index) => {
+    setBasket(basket.filter((_, i) => i !== index));
+  };
+
+  const updateOrder = (index, updatedOrder) => {
+    const newBasket = [...basket];
+    newBasket[index] = updatedOrder;
+    setBasket(newBasket);
+  };
+
+  const handleEditOrder = (order, index) => {
+    setEditingOrder(order);
+    setEditingOrderIndex(index);
+    setCurrentPage('update-order');
+  };
+
   const Header = () => (
     <header className="header-wrapper">
       <div className="header-container">
@@ -142,6 +170,13 @@ function App() {
             <span>Избранное ({favorites.length})</span>
           </button>
           <button 
+            onClick={() => navigateTo('basket')} 
+            className={`nav-link ${currentPage === 'basket' || currentPage === 'basket-detail' ? 'active' : ''}`}
+          >
+            <ShoppingCart size={20} />
+            <span>Корзина ({basket.length})</span>
+          </button>
+          <button 
             onClick={() => navigateTo('profile')} 
             className={`nav-link ${currentPage === 'profile' ? 'active' : ''}`}
           >
@@ -171,7 +206,6 @@ function App() {
     </header>
   );
 
-  // Footer Component
   const Footer = () => (
     <footer className="footer-wrapper">
       <div className="footer-container">
@@ -206,7 +240,7 @@ function App() {
               <li><button onClick={() => navigateTo('home')}>Главная</button></li>
               <li><button onClick={() => navigateTo('search')}>Поиск</button></li>
               <li><button onClick={() => navigateTo('favorites')}>Избранное</button></li>
-              <li><button onClick={() => navigateTo('profile')}>Профиль</button></li>
+              <li><button onClick={() => navigateTo('basket')}>Корзина</button></li>
             </ul>
           </div>
 
@@ -229,18 +263,18 @@ function App() {
               </li>
               <li>
                 <Phone size={18} />
-                <span>+7 (999) 123-45-67</span>
+                <span>+996 777 777 777</span>
               </li>
               <li>
                 <MapPin size={18} />
-                <span>Москва, Россия</span>
+                <span>Токмок, Кыргызстан</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; 2024 Кинотека. Все права защищены.</p>
+          <p>&copy; 2025 Кинотека. Все права защищены.</p>
           <div className="footer-bottom-links">
             <a href="#privacy">Политика конфиденциальности</a>
             <span>•</span>
@@ -251,7 +285,6 @@ function App() {
     </footer>
   );
 
-  // Movie Card Component
   const MovieCard = ({ movie }) => (
     <div className="movie-card">
       <div className="movie-poster-wrapper">
@@ -259,7 +292,10 @@ function App() {
           src={movie.image}
           alt={movie.title}
           className="movie-poster"
-          onClick={() => setSelectedMovie(movie)}
+          onClick={() => {
+            setSelectedMovie(movie);
+            setCurrentPage('detail');
+          }}
         />
         <div className="movie-rating">
           <Star size={16} fill="currentColor" />
@@ -290,14 +326,16 @@ function App() {
         </div>
         <p className="movie-genre">{movie.genre}</p>
         <p className="movie-description">{movie.description}</p>
-        <button className="btn-detail" onClick={() => setSelectedMovie(movie)}>
+        <button className="btn-detail" onClick={() => {
+          setSelectedMovie(movie);
+          setCurrentPage('detail');
+        }}>
           Подробнее
         </button>
       </div>
     </div>
   );
 
-  // Home Page
   const HomePage = () => (
     <div className="main-content">
       <div className="container">
@@ -314,7 +352,6 @@ function App() {
     </div>
   );
 
-  // Search Page
   const SearchPage = () => (
     <div className="main-content">
       <div className="container">
@@ -343,7 +380,6 @@ function App() {
     </div>
   );
 
-  // Favorites Page
   const FavoritesPage = () => (
     <div className="main-content">
       <div className="container">
@@ -375,7 +411,6 @@ function App() {
     </div>
   );
 
-  // Profile Page
   const ProfilePage = () => (
     <div className="main-content">
       <div className="container">
@@ -397,8 +432,8 @@ function App() {
                 <div className="stat-label">Избранных</div>
               </div>
               <div className="stat-item">
-                <div className="stat-value">{moviesData.length}</div>
-                <div className="stat-label">Просмотрено</div>
+                <div className="stat-value">{basket.length}</div>
+                <div className="stat-label">В корзине</div>
               </div>
               <div className="stat-item">
                 <div className="stat-value">24</div>
@@ -413,11 +448,10 @@ function App() {
     </div>
   );
 
-  // Movie Detail Page
   const MovieDetail = ({ movie }) => (
     <div className="main-content">
       <div className="container">
-        <button onClick={() => setSelectedMovie(null)} className="back-btn">
+        <button onClick={() => setCurrentPage('home')} className="back-btn">
           <ArrowLeft size={20} />
           Назад
         </button>
@@ -474,7 +508,10 @@ function App() {
               </div>
 
               <div className="action-buttons">
-                <button className="btn-primary">Смотреть трейлер</button>
+                <button className="btn-primary" onClick={() => setCurrentPage('create-order')}>
+                  <Package size={20} />
+                  Купить билет
+                </button>
                 <button 
                   className={`btn-secondary ${isFavorite(movie.id) ? 'active' : ''}`}
                   onClick={() => toggleFavorite(movie)}
@@ -490,20 +527,43 @@ function App() {
     </div>
   );
 
-  // Main Render
   return (
     <div className="app">
       <Header />
       
-      {selectedMovie ? (
-        <MovieDetail movie={selectedMovie} />
-      ) : (
-        <>
-          {currentPage === 'home' && <HomePage />}
-          {currentPage === 'search' && <SearchPage />}
-          {currentPage === 'favorites' && <FavoritesPage />}
-          {currentPage === 'profile' && <ProfilePage />}
-        </>
+      {currentPage === 'home' && <HomePage />}
+      {currentPage === 'search' && <SearchPage />}
+      {currentPage === 'favorites' && <FavoritesPage />}
+      {currentPage === 'profile' && <ProfilePage />}
+      {currentPage === 'detail' && selectedMovie && <MovieDetail movie={selectedMovie} />}
+      {currentPage === 'basket' && (
+        <BasketList 
+          basket={basket} 
+          onRemoveFromBasket={removeFromBasket}
+          onNavigate={navigateTo}
+          onEditOrder={handleEditOrder}
+        />
+      )}
+      {currentPage === 'basket-detail' && (
+        <BasketDetail 
+          basket={basket} 
+          onNavigate={navigateTo}
+        />
+      )}
+      {currentPage === 'create-order' && selectedMovie && (
+        <CreateOrder 
+          movie={selectedMovie}
+          onAddToBasket={addToBasket}
+          onNavigate={navigateTo}
+        />
+      )}
+      {currentPage === 'update-order' && editingOrder && (
+        <UpdateOrder 
+          order={editingOrder}
+          orderIndex={editingOrderIndex}
+          onUpdateOrder={updateOrder}
+          onNavigate={navigateTo}
+        />
       )}
 
       <Footer />
